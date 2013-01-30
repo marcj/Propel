@@ -107,8 +107,34 @@ const SCOPE_COL = '" . $tableName . '.' . $this->getColumnConstant('scope_column
         $this->addUpdateLoadedNodes($script);
         $this->addMakeRoomForLeaf($script);
         $this->addFixLevels($script);
+        $this->addSetNegativeScope($script);
 
         return $script;
+    }
+
+    protected function addSetNegativeScope(&$script)
+    {
+
+        $peerClassname = $this->peerClassname;
+$script .= "
+/**
+ * Returns the root nodes for the tree
+ *
+ * @param      mixed \$targetScope   Connection to use.
+ * @return     {$this->objectClassname}			Propel object for root node
+ */
+public static function setNegativeScope(\$targetScope, PropelPDO \$con = null)
+{
+    //adjust scope value to \$targetScope
+    \$whereCriteria = new Criteria($peerClassname::DATABASE_NAME);
+    \$whereCriteria->add($peerClassname::LEFT_COL, 0, Criteria::LESS_EQUAL);
+
+    \$valuesCriteria = new Criteria($peerClassname::DATABASE_NAME);
+    \$valuesCriteria->add($peerClassname::SCOPE_COL, \$targetScope, Criteria::EQUAL);
+
+    {$this->builder->getBasePeerClassname()}::doUpdate(\$whereCriteria, \$valuesCriteria, \$con);
+}
+";
     }
 
     protected function addRetrieveRoots(&$script)
@@ -431,6 +457,9 @@ public static function updateLoadedNodes(\$prune = null, PropelPDO \$con = null)
             } elseif ($col->getPhpName() == $this->getColumnPhpName('right_column')) {
                 $script .= "
                     \$object->setRightValue(\$row[$n]);";
+            } elseif ($this->getParameter('use_scope') == 'true' && $col->getPhpName() == $this->getColumnPhpName('scope_column')) {
+                $script .= "
+                    \$object->setScopeValue(\$row[$n]);";
             } elseif ($col->getPhpName() == $this->getColumnPhpName('level_column')) {
                 $script .= "
                     \$object->setLevel(\$row[$n]);

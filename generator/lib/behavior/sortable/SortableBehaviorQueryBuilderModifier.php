@@ -81,7 +81,8 @@ class SortableBehaviorQueryBuilderModifier
  */
 public function inList(\$scope = null)
 {
-    return \$this->addUsingAlias({$this->peerClassname}::SCOPE_COL, \$scope, Criteria::EQUAL);
+    {$this->peerClassname}::sortableApplyScopeCriteria(\$this, \$scope, 'addUsingAlias');
+    return \$this;
 }
 ";
     }
@@ -227,7 +228,7 @@ public function getMaxRank(" . ($useScope ? "\$scope = null, " : "") . "PropelPD
     \$this->addSelectColumn('MAX(' . {$this->peerClassname}::RANK_COL . ')');";
         if ($useScope) {
         $script .= "
-    \$this->add({$this->peerClassname}::SCOPE_COL, \$scope, Criteria::EQUAL);";
+        {$this->peerClassname}::sortableApplyScopeCriteria(\$this, \$scope);";
         }
         $script .= "
     \$stmt = \$this->doSelect(\$con);

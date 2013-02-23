@@ -46,7 +46,7 @@ class SortableBehavior extends Behavior
                 'type' => 'INTEGER'
             ));
         }
-        if ($this->useScope() &&
+        if ($this->useScope() && !$this->hasMultipleScopes() &&
              !$table->containsColumn($this->getParameter('scope_column'))) {
             $table->addColumn(array(
                 'name' => $this->getParameter('scope_column'),
@@ -55,18 +55,40 @@ class SortableBehavior extends Behavior
         }
 
         if ($this->useScope()) {
-            $keys = $table->getColumnForeignKeys($this->getParameter('scope_column'));
-            foreach ($keys as $key) {
-                if ($key->isForeignPrimaryKey() && $key->getOnDelete() == ForeignKey::SETNULL) {
-                    $foreignTable = $key->getForeignTable();
-                    $relationBehavior = new SortableRelationBehavior();
-                    $relationBehavior->addParameter(array('name' => 'foreign_table', 'value' => $table->getName()));
-                    $relationBehavior->addParameter(array('name' => 'foreign_scope_column', 'value' => $this->getParameter('scope_column')));
-                    $relationBehavior->addParameter(array('name' => 'foreign_rank_column', 'value' => $this->getParameter('rank_column')));
-                    $foreignTable->addBehavior($relationBehavior);
+
+            $scopes = $this->getScopes();
+            foreach ($scopes as $scope) {
+                $keys = $table->getColumnForeignKeys($scope);
+                foreach ($keys as $key) {
+                    if ($key->isForeignPrimaryKey() && $key->getOnDelete() == ForeignKey::SETNULL) {
+                        $foreignTable = $key->getForeignTable();
+                        $relationBehavior = new SortableRelationBehavior();
+                        $relationBehavior->addParameter(array('name' => 'foreign_table', 'value' => $table->getName()));
+                        $relationBehavior->addParameter(array('name' => 'foreign_scope_column', 'value' => $scope));
+                        $relationBehavior->addParameter(array('name' => 'foreign_rank_column', 'value' => $this->getParameter('rank_column')));
+                        $foreignTable->addBehavior($relationBehavior);
+                    }
                 }
             }
         }
+    }
+
+    public function getColumnGetter($name)
+    {
+        return 'get' . $this->getTable()->getColumn($name)->getPhpName();
+    }
+
+    public function getColumnSetter($name)
+    {
+        return 'set' . $this->getTable()->getColumn($name)->getPhpName();
+    }
+
+    public function getScopes(){
+        return explode(',', str_replace(' ', '', trim($this->getParameter('scope_column'), ',')));
+    }
+
+    public function hasMultipleScopes(){
+        return count($this->getScopes()) > 1;
     }
 
     public function getObjectBuilderModifier()

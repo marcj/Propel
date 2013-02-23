@@ -276,4 +276,51 @@ class SortableBehaviorObjectBuilderModifierTest extends BookstoreSortableTestBas
         $this->assertEquals($expected, $this->getFixturesArray(), 'removeFromList() changes the list once the object is saved');
     }
 
+    public function generateMultipleScopeEntries(){
+
+        SortableMultiScopesPeer::doDeleteAll();
+
+        $items = array(
+            //    cat scat title
+            array(  1,  1,  'item 1'),  //1
+            array(  2,  1,  'item 2'),  //1
+            array(  3,  1,  'item 3'),  //1
+            array(  3,  1,  'item 3.1'),//2
+            array(  1,  1,  'item 1.1'),//2
+            array(  1,  1,  'item 1.2'),//3
+            array(  1,  2,  'item 1.3'),//1
+            array(  1,  2,  'item 1.4'),//2
+        );
+
+        $result = array();
+        foreach ($items as $value){
+            $item = new SortableMultiScopes();
+            $item->setCategoryId($value[0]);
+            $item->setSubCategoryId($value[1]);
+            $item->setTitle($value[2]);
+            $item->save();
+            $result[] = $item;
+        }
+
+        return $result;
+
+    }
+
+    public function testMultipleScopes(){
+
+        list($t1, $t2, $t3, $t3_1, $t1_1, $t1_2, $t1_3, $t1_4) = $this->generateMultipleScopeEntries();
+
+        $this->assertEquals($t1->getRank(), 1);
+        $this->assertEquals($t2->getRank(), 1);
+
+        $this->assertEquals($t3->getRank(), 1);
+        $this->assertEquals($t3_1->getRank(), 2);
+
+        $this->assertEquals($t1_1->getRank(), 2);
+        $this->assertEquals($t1_2->getRank(), 3);
+        $this->assertEquals($t1_3->getRank(), 1);
+        $this->assertEquals($t1_4->getRank(), 2);
+
+    }
+
 }

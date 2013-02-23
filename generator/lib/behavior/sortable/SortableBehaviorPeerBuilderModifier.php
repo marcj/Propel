@@ -18,7 +18,17 @@
  */
 class SortableBehaviorPeerBuilderModifier
 {
-    protected $behavior, $table, $builder, $objectClassname, $peerClassname;
+    /**
+     * @var SortableBehavior
+     */
+    protected $behavior;
+
+    /**
+     * @var Table
+     */
+    protected $table;
+
+    protected $builder, $objectClassname, $peerClassname;
 
     public function __construct($behavior)
     {
@@ -67,15 +77,6 @@ class SortableBehaviorPeerBuilderModifier
 const RANK_COL = '" . $tableName . '.' . $this->getColumnConstant('rank_column') . "';
 ";
 
-        if ($this->behavior->useScope()) {
-            $script .= 	"
-/**
- * Scope column for the set
- */
-const SCOPE_COL = '" . $tableName . '.' . $this->getColumnConstant('scope_column') . "';
-";
-        }
-
         return $script;
     }
 
@@ -97,10 +98,45 @@ const SCOPE_COL = '" . $tableName . '.' . $this->getColumnConstant('scope_column
             $this->addRetrieveList($script);
             $this->addCountList($script);
             $this->addDeleteList($script);
+            $this->addSortableApplyScopeCriteria($script);
         }
         $this->addShiftRank($script);
 
         return $script;
+    }
+
+    public function addSortableApplyScopeCriteria(&$script)
+    {
+        $script .= "
+/**
+ * Applies all scope fields to the given criteria.
+ *
+ * @param  Criteria \$criteria Applies the values directly to this criteria.
+ * @param  mixed    \$scope    The scope values as native type or array.
+ * @param  string   \$method   The method we use to apply the values.
+ *
+ */
+public static function sortableApplyScopeCriteria(Criteria \$criteria, \$scope, \$method = 'add')
+{
+";
+        if ($this->behavior->hasMultipleScopes()){
+
+            foreach ($this->behavior->getScopes() as $idx => $scope){
+                $script .= "
+    \$criteria->\$method({$this->peerClassname}::".strtoupper($scope).", \$scope[$idx], Criteria::EQUAL);
+";
+            }
+        } else {
+            $script .= "
+    \$criteria->\$method({$this->peerClassname}::".strtoupper(current($this->behavior->getScopes())).", \$scope, Criteria::EQUAL);
+";
+        }
+
+
+        $script .= "
+}
+";
+
     }
 
     protected function addGetMaxRank(&$script)
@@ -129,7 +165,7 @@ public static function getMaxRank(" . ($useScope ? "\$scope = null, " : "") . "P
     \$c->addSelectColumn('MAX(' . {$this->peerClassname}::RANK_COL . ')');";
         if ($useScope) {
         $script .= "
-    \$c->add({$this->peerClassname}::SCOPE_COL, \$scope, Criteria::EQUAL);";
+    {$this->peerClassname}::sortableApplyScopeCriteria(\$c, \$scope);";
         }
         $script .= "
     \$stmt = {$this->peerClassname}::doSelectStmt(\$c, \$con);
@@ -167,7 +203,7 @@ public static function retrieveByRank(\$rank, " . ($useScope ? "\$scope = null, 
     \$c->add($peerClassname::RANK_COL, \$rank);";
         if ($useScope) {
             $script .= "
-    \$c->add($peerClassname::SCOPE_COL, \$scope, Criteria::EQUAL);";
+    {$this->peerClassname}::sortableApplyScopeCriteria(\$c, \$scope);";
         }
         $script .= "
 
@@ -265,7 +301,7 @@ public static function doSelectOrderByRank(Criteria \$criteria = null, \$order =
 /**
  * Return an array of sortable objects in the given scope ordered by position
  *
- * @param     int       \$scope  the scope of the list
+ * @param     mixed     \$scope  the scope of the list
  * @param     string    \$order  sorting order, to be chosen between Criteria::ASC (default) and Criteria::DESC
  * @param     PropelPDO \$con    optional connection
  *
@@ -274,7 +310,7 @@ public static function doSelectOrderByRank(Criteria \$criteria = null, \$order =
 public static function retrieveList(\$scope, \$order = Criteria::ASC, PropelPDO \$con = null)
 {
     \$c = new Criteria();
-    \$c->add($peerClassname::SCOPE_COL, \$scope);
+    {$this->peerClassname}::sortableApplyScopeCriteria(\$c, \$scope);
 
     return $peerClassname::doSelectOrderByRank(\$c, \$order, \$con);
 }
@@ -288,7 +324,7 @@ public static function retrieveList(\$scope, \$order = Criteria::ASC, PropelPDO 
 /**
  * Return the number of sortable objects in the given scope
  *
- * @param     int       \$scope  the scope of the list
+ * @param     mixed     \$scope  the scope of the list
  * @param     PropelPDO \$con    optional connection
  *
  * @return    array list of sortable objects
@@ -296,7 +332,7 @@ public static function retrieveList(\$scope, \$order = Criteria::ASC, PropelPDO 
 public static function countList(\$scope, PropelPDO \$con = null)
 {
     \$c = new Criteria();
-    \$c->add($peerClassname::SCOPE_COL, \$scope);
+    {$this->peerClassname}::sortableApplyScopeCriteria(\$c, \$scope);
 
     return $peerClassname::doCount(\$c, \$con);
 }
@@ -310,7 +346,7 @@ public static function countList(\$scope, PropelPDO \$con = null)
 /**
  * Deletes the sortable objects in the given scope
  *
- * @param     int       \$scope  the scope of the list
+ * @param     mixed     \$scope  the scope of the list
  * @param     PropelPDO \$con    optional connection
  *
  * @return    int number of deleted objects
@@ -318,7 +354,7 @@ public static function countList(\$scope, PropelPDO \$con = null)
 public static function deleteList(\$scope, PropelPDO \$con = null)
 {
     \$c = new Criteria();
-    \$c->add($peerClassname::SCOPE_COL, \$scope);
+    {$this->peerClassname}::sortableApplyScopeCriteria(\$c, \$scope);
 
     return $peerClassname::doDelete(\$c, \$con);
 }
@@ -338,7 +374,7 @@ public static function deleteList(\$scope, PropelPDO \$con = null)
  * @param      int \$last  Last node to be shifted";
         if ($useScope) {
             $script .= "
- * @param      int \$scope Scope to use for the shift";
+ * @param      mixed \$scope Scope to use for the shift";
         }
         $script .= "
  * @param      PropelPDO \$con Connection to use.
@@ -358,7 +394,7 @@ public static function shiftRank(\$delta, \$first = null, \$last = null, " . ($u
     }";
         if ($useScope) {
             $script .= "
-    \$whereCriteria->add($peerClassname::SCOPE_COL, \$scope, Criteria::EQUAL);";
+    {$this->peerClassname}::sortableApplyScopeCriteria(\$whereCriteria, \$scope);";
         }
         $script .= "
 

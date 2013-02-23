@@ -73,21 +73,45 @@ class SortableBehavior extends Behavior
         }
     }
 
+    /**
+     * Returns the getter method name.
+     *
+     * @param  string $name
+     * @return string
+     */
     public function getColumnGetter($name)
     {
         return 'get' . $this->getTable()->getColumn($name)->getPhpName();
     }
 
+    /**
+     * Returns the setter method name.
+     *
+     * @param  string $name
+     * @return string
+     */
     public function getColumnSetter($name)
     {
         return 'set' . $this->getTable()->getColumn($name)->getPhpName();
     }
 
-    public function getScopes(){
+    /**
+     * Returns all scope columns as array.
+     *
+     * @return string[]
+     */
+    public function getScopes()
+    {
         return explode(',', str_replace(' ', '', trim($this->getParameter('scope_column'), ',')));
     }
 
-    public function hasMultipleScopes(){
+    /**
+     * Returns true if the behavior has multiple scope columns.
+     *
+     * @return bool
+     */
+    public function hasMultipleScopes()
+    {
         return count($this->getScopes()) > 1;
     }
 

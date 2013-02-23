@@ -102,7 +102,7 @@ class SortableBehaviorObjectBuilderModifier
 
             $condition = array();
 
-            foreach ($this->behavior->getScopes() as $scope){
+            foreach ($this->behavior->getScopes() as $scope) {
                 $condition[] = "\$this->isColumnModified({$this->peerClassname}::".strtoupper($scope).")";
             }
 
@@ -186,7 +186,7 @@ protected \$oldScope;
     public function objectFilter(&$script, $builder)
     {
         if ($this->behavior->useScope()) {
-            if ($this->behavior->hasMultipleScopes()){
+            if ($this->behavior->hasMultipleScopes()) {
 
                 foreach ($this->behavior->getScopes() as $idx => $scope) {
                     $name = strtolower($this->behavior->getTable()->getColumn($scope)->getName());
@@ -252,7 +252,6 @@ public function setRank(\$v)
     protected function addScopeAccessors(&$script)
     {
 
-
         $script .= "
 
 /**
@@ -263,12 +262,12 @@ public function setRank(\$v)
 public function getScopeValue()
 {
 ";
-        if ($this->behavior->hasMultipleScopes()){
+        if ($this->behavior->hasMultipleScopes()) {
 $script .= "
     \$result = array();
     \$onlyNulls = true;
 ";
-            foreach ($this->behavior->getScopes() as $scopeField){
+            foreach ($this->behavior->getScopes() as $scopeField) {
 $script .= "
     \$onlyNulls &= null === (\$result[] = \$this->{$this->behavior->getColumnGetter($scopeField)}());
 ";
@@ -276,11 +275,13 @@ $script .= "
             }
 
 $script .= "
+
     return \$onlyNulls ? null : \$result;
 ";
         } else {
 
 $script .= "
+
     return \$this->{$this->getColumnGetter('scope_column')}();
 ";
         }
@@ -298,9 +299,9 @@ public function setScopeValue(\$v)
 {
 ";
 
-        if ($this->behavior->hasMultipleScopes()){
+        if ($this->behavior->hasMultipleScopes()) {
 
-            foreach ($this->behavior->getScopes() as $idx => $scopeField){
+            foreach ($this->behavior->getScopes() as $idx => $scopeField) {
 $script .= "
     \$this->{$this->behavior->getColumnSetter($scopeField)}(\$v === null ? null : \$v[$idx]);
 ";
@@ -308,6 +309,7 @@ $script .= "
 
         } else {
 $script .= "
+
     return \$this->{$this->getColumnSetter('scope_column')}(\$v);
 ";
 

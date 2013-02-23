@@ -119,9 +119,9 @@ const RANK_COL = '" . $tableName . '.' . $this->getColumnConstant('rank_column')
 public static function sortableApplyScopeCriteria(Criteria \$criteria, \$scope, \$method = 'add')
 {
 ";
-        if ($this->behavior->hasMultipleScopes()){
+        if ($this->behavior->hasMultipleScopes()) {
 
-            foreach ($this->behavior->getScopes() as $idx => $scope){
+            foreach ($this->behavior->getScopes() as $idx => $scope) {
                 $script .= "
     \$criteria->\$method({$this->peerClassname}::".strtoupper($scope).", \$scope[$idx], Criteria::EQUAL);
 ";
@@ -131,7 +131,6 @@ public static function sortableApplyScopeCriteria(Criteria \$criteria, \$scope, 
     \$criteria->\$method({$this->peerClassname}::".strtoupper(current($this->behavior->getScopes())).", \$scope, Criteria::EQUAL);
 ";
         }
-
 
         $script .= "
 }

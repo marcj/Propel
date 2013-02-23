@@ -82,6 +82,7 @@ class SortableBehaviorQueryBuilderModifier
 public function inList(\$scope = null)
 {
     {$this->peerClassname}::sortableApplyScopeCriteria(\$this, \$scope, 'addUsingAlias');
+
     return \$this;
 }
 ";

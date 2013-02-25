@@ -30,6 +30,7 @@ class SortableBehaviorPeerBuilderModifierWithScopeTest extends BookstoreSortable
     public function testStaticAttributes()
     {
         $this->assertEquals(Table12Peer::RANK_COL, 'table12.position');
+        $this->assertEquals(Table12Peer::SCOPE_COL, 'table12.my_scope_column');
     }
 
     public function testGetMaxRank()

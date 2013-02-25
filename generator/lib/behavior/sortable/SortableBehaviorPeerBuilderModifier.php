@@ -77,6 +77,35 @@ class SortableBehaviorPeerBuilderModifier
 const RANK_COL = '" . $tableName . '.' . $this->getColumnConstant('rank_column') . "';
 ";
 
+        if ($this->behavior->useScope()) {
+            $colNames = $this->getColumnConstant('scope_column');
+
+            if ($this->behavior->hasMultipleScopes()) {
+                foreach ($this->behavior->getScopes() as $scope) {
+                    $col[] = "$tableName.".strtoupper($scope);
+                }
+                $col = json_encode($col);
+                $col = "'$col'";
+
+                $script .=   "
+/**
+ *
+ */
+const MULTI_SCOPE_COL = true;
+";
+
+            } else {
+                $col =  "'$tableName.$colNames'";
+            }
+
+            $script .=   "
+/**
+ * Scope column for the set
+ */
+const SCOPE_COL = $col;
+";
+
+        }
         return $script;
     }
 
@@ -112,7 +141,7 @@ const RANK_COL = '" . $tableName . '.' . $this->getColumnConstant('rank_column')
  * Applies all scope fields to the given criteria.
  *
  * @param  Criteria \$criteria Applies the values directly to this criteria.
- * @param  mixed    \$scope    The scope values as native type or array.
+ * @param  mixed    \$scope    The scope value as scalar type or array.
  * @param  string   \$method   The method we use to apply the values.
  *
  */

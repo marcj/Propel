@@ -20,7 +20,7 @@
 
 	<table name="sortable_multi_scopes">
 		<column name="id" required="true" primaryKey="true" autoIncrement="true" type="INTEGER" />
-		<column name="category_id" type="INTEGER" />
+		<column name="category_id" required="true" type="INTEGER" />
 		<column name="sub_category_id" type="INTEGER" />
 		<column name="title" type="VARCHAR" size="100" primaryString="true" />
 		<column name="position" type="INTEGER" />

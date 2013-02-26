@@ -28,7 +28,20 @@ class SortableBehaviorPeerBuilderModifier
      */
     protected $table;
 
-    protected $builder, $objectClassname, $peerClassname;
+    /**
+     * @var OMBuilder
+     */
+    protected $builder;
+
+    /**
+     * @var String
+     */
+    protected $objectClassname;
+
+    /**
+     * @var String
+     */
+    protected $peerClassname;
 
     public function __construct($behavior)
     {
@@ -78,7 +91,6 @@ const RANK_COL = '" . $tableName . '.' . $this->getColumnConstant('rank_column')
 ";
 
         if ($this->behavior->useScope()) {
-            $colNames = $this->getColumnConstant('scope_column');
 
             if ($this->behavior->hasMultipleScopes()) {
                 foreach ($this->behavior->getScopes() as $scope) {
@@ -95,6 +107,8 @@ const MULTI_SCOPE_COL = true;
 ";
 
             } else {
+                $colNames = $this->getColumnConstant('scope_column');
+
                 $col =  "'$tableName.$colNames'";
             }
 
@@ -141,7 +155,7 @@ const SCOPE_COL = $col;
  * Applies all scope fields to the given criteria.
  *
  * @param  Criteria \$criteria Applies the values directly to this criteria.
- * @param  mixed    \$scope    The scope value as scalar type or array.
+ * @param  mixed    \$scope    The scope value as scalar type or array(\$value1, ...).
  * @param  string   \$method   The method we use to apply the values.
  *
  */
@@ -149,7 +163,6 @@ public static function sortableApplyScopeCriteria(Criteria \$criteria, \$scope, 
 {
 ";
         if ($this->behavior->hasMultipleScopes()) {
-
             foreach ($this->behavior->getScopes() as $idx => $scope) {
                 $script .= "
     \$criteria->\$method({$this->peerClassname}::".strtoupper($scope).", \$scope[$idx], Criteria::EQUAL);
@@ -402,7 +415,7 @@ public static function deleteList(\$scope, PropelPDO \$con = null)
  * @param      int \$last  Last node to be shifted";
         if ($useScope) {
             $script .= "
- * @param      mixed \$scope Scope to use for the shift";
+ * @param      mixed \$scope Scope to use for the shift. Scalar value (single scope) or array";
         }
         $script .= "
  * @param      PropelPDO \$con Connection to use.

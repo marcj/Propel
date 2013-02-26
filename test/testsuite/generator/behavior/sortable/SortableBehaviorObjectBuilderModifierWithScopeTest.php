@@ -475,7 +475,6 @@ class SortableBehaviorObjectBuilderModifierWithScopeTest extends BookstoreSortab
 
     public function testMoveMultipleScopes()
     {
-        /** $var $t1 SortableMultiScopes  */
         list($t1, $t2, $t3, $t3_1, $t1_1, $t1_2, $t1_3, $t1_4) = $this->generateMultipleScopeEntries();
 
         $this->assertEquals($t1->getRank(), 1);
@@ -506,7 +505,6 @@ class SortableBehaviorObjectBuilderModifierWithScopeTest extends BookstoreSortab
 
     public function testDeleteMultipleScopes()
     {
-        /** $var $t1 SortableMultiScopes  */
         list($t1, $t2, $t3, $t3_1, $t1_1, $t1_2, $t1_3, $t1_4) = $this->generateMultipleScopeEntries();
 
         $this->assertEquals($t1->getRank(), 1);

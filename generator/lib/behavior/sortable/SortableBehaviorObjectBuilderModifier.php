@@ -28,7 +28,20 @@ class SortableBehaviorObjectBuilderModifier
      */
     protected $table;
 
-    protected $builder, $objectClassname, $peerClassname;
+    /**
+     * @var OMBuilder
+     */
+    protected $builder;
+
+    /**
+     * @var String
+     */
+    protected $objectClassname;
+
+    /**
+     * @var String
+     */
+    protected $peerClassname;
 
     public function __construct($behavior)
     {
@@ -90,7 +103,7 @@ class SortableBehaviorObjectBuilderModifier
         $this->setBuilder($builder);
 
         return "if (!\$this->isColumnModified({$this->peerClassname}::RANK_COL)) {
-    \$this->{$this->getColumnSetter()}({$this->queryClassname}::create()->getMaxRank(" . ($useScope ? "\$this->getScopeValue(), " : '') . "\$con) + 1);
+    \$this->{$this->getColumnSetter()}({$this->queryClassname}::create()->getMaxRankArray(" . ($useScope ? "\$this->getScopeValue(), " : '') . "\$con) + 1);
 }
 ";
     }
@@ -257,9 +270,11 @@ public function setRank(\$v)
 /**
  * Wrap the getter for scope value
  *
+ * @param boolean \$returnNulls If true and all scope values are null, this will return null instead of a array full with nulls
+ *
  * @return    mixed A array or a native type
  */
-public function getScopeValue()
+public function getScopeValue(\$returnNulls = true)
 {
 ";
         if ($this->behavior->hasMultipleScopes()) {
@@ -276,7 +291,7 @@ $script .= "
 
 $script .= "
 
-    return \$onlyNulls ? null : \$result;
+    return \$onlyNulls && \$returnNulls ? null : \$result;
 ";
         } else {
 
@@ -347,7 +362,7 @@ public function isFirst()
  */
 public function isLast(PropelPDO \$con = null)
 {
-    return \$this->{$this->getColumnGetter()}() == {$this->queryClassname}::create()->getMaxRank(" . ($useScope ? "\$this->getScopeValue(), " : '') . "\$con);
+    return \$this->{$this->getColumnGetter()}() == {$this->queryClassname}::create()->getMaxRankArray(" . ($useScope ? "\$this->getScopeValue(), " : '') . "\$con);
 }
 ";
     }
@@ -355,6 +370,8 @@ public function isLast(PropelPDO \$con = null)
     protected function addGetNext(&$script)
     {
         $useScope = $this->behavior->useScope();
+        list($methodSignature, $paramsDoc, $buildScope, $buildScopeVars) = $this->behavior->generateScopePhp();
+
         $script .= "
 /**
  * Get the next item in the list, i.e. the one for which rank is immediately higher
@@ -365,20 +382,28 @@ public function isLast(PropelPDO \$con = null)
  */
 public function getNext(PropelPDO \$con = null)
 {";
-        if ($this->behavior->getParameter('rank_column') == 'rank' && $useScope) {
-            $script .= "
+        $script .= "
 
-    return {$this->queryClassname}::create()
-        ->filterByRank(\$this->{$this->getColumnGetter()}() + 1)
-        ->inList(\$this->getScopeValue())
-        ->findOne(\$con);";
+    \$query = {$this->queryClassname}::create();
+";
+
+        if ($useScope) {
+            $methodSignature = str_replace(' = null', '', $methodSignature);
+
+            $script .= "
+    \$scope = \$this->getScopeValue();
+    $buildScopeVars
+    \$query->filterByRank(\$this->{$this->getColumnGetter()}() + 1, $methodSignature);
+";
         } else {
-            $script .= "
 
-    return {$this->queryClassname}::create()->findOneByRank(\$this->{$this->getColumnGetter()}() + 1, " . ($useScope ? "\$this->getScopeValue(), " : '') . "\$con);";
+            $script .= "
+    \$query->filterByRank(\$this->{$this->getColumnGetter()}() + 1);
+";
         }
 
         $script .= "
+    return \$query->findOne(\$con);
 }
 ";
     }
@@ -386,6 +411,9 @@ public function getNext(PropelPDO \$con = null)
     protected function addGetPrevious(&$script)
     {
         $useScope = $this->behavior->useScope();
+
+        list($methodSignature, $paramsDoc, $buildScope, $buildScopeVars) = $this->behavior->generateScopePhp();
+
         $script .= "
 /**
  * Get the previous item in the list, i.e. the one for which rank is immediately lower
@@ -396,19 +424,28 @@ public function getNext(PropelPDO \$con = null)
  */
 public function getPrevious(PropelPDO \$con = null)
 {";
-        if ($this->behavior->getParameter('rank_column') == 'rank' && $useScope) {
-            $script .= "
-
-    return {$this->queryClassname}::create()
-        ->filterByRank(\$this->{$this->getColumnGetter()}() - 1)
-        ->inList(\$this->getScopeValue())
-        ->findOne(\$con);";
-        } else {
-            $script .= "
-
-    return {$this->queryClassname}::create()->findOneByRank(\$this->{$this->getColumnGetter()}() - 1, " . ($useScope ? "\$this->getScopeValue(), " : '') . "\$con);";
-        }
         $script .= "
+
+    \$query = {$this->queryClassname}::create();
+";
+
+        if ($useScope) {
+            $methodSignature = str_replace(' = null', '', $methodSignature);
+
+            $script .= "
+    \$scope = \$this->getScopeValue();
+    $buildScopeVars
+    \$query->filterByRank(\$this->{$this->getColumnGetter()}() - 1, $methodSignature);
+";
+        } else {
+
+            $script .= "
+    \$query->filterByRank(\$this->{$this->getColumnGetter()}() - 1);
+";
+        }
+
+        $script .= "
+    return \$query->findOne(\$con);
 }
 ";
     }
@@ -431,7 +468,7 @@ public function getPrevious(PropelPDO \$con = null)
 public function insertAtRank(\$rank, PropelPDO \$con = null)
 {";
         $script .= "
-    \$maxRank = {$this->queryClassname}::create()->getMaxRank(" . ($useScope ? "\$this->getScopeValue(), " : '') . "\$con);
+    \$maxRank = {$this->queryClassname}::create()->getMaxRankArray(" . ($useScope ? "\$this->getScopeValue(), " : '') . "\$con);
     if (\$rank < 1 || \$rank > \$maxRank + 1) {
         throw new PropelException('Invalid rank ' . \$rank);
     }
@@ -467,7 +504,7 @@ public function insertAtRank(\$rank, PropelPDO \$con = null)
 public function insertAtBottom(PropelPDO \$con = null)
 {";
         $script .= "
-    \$this->{$this->getColumnSetter()}({$this->queryClassname}::create()->getMaxRank(" . ($useScope ? "\$this->getScopeValue(), " : '') . "\$con) + 1);
+    \$this->{$this->getColumnSetter()}({$this->queryClassname}::create()->getMaxRankArray(" . ($useScope ? "\$this->getScopeValue(), " : '') . "\$con) + 1);
 
     return \$this;
 }
@@ -514,7 +551,7 @@ public function moveToRank(\$newRank, PropelPDO \$con = null)
     if (\$con === null) {
         \$con = Propel::getConnection($peerClassname::DATABASE_NAME);
     }
-    if (\$newRank < 1 || \$newRank > {$this->queryClassname}::create()->getMaxRank(" . ($useScope ? "\$this->getScopeValue(), " : '') . "\$con)) {
+    if (\$newRank < 1 || \$newRank > {$this->queryClassname}::create()->getMaxRankArray(" . ($useScope ? "\$this->getScopeValue(), " : '') . "\$con)) {
         throw new PropelException('Invalid rank ' . \$newRank);
     }
 
@@ -699,7 +736,7 @@ public function moveToBottom(PropelPDO \$con = null)
     }
     \$con->beginTransaction();
     try {
-        \$bottom = {$this->queryClassname}::create()->getMaxRank(" . ($useScope ? "\$this->getScopeValue(), " : '') . "\$con);
+        \$bottom = {$this->queryClassname}::create()->getMaxRankArray(" . ($useScope ? "\$this->getScopeValue(), " : '') . "\$con);
         \$res = \$this->moveToRank(\$bottom, \$con);
         \$con->commit();
 

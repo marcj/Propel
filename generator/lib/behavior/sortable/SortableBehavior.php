@@ -74,6 +74,59 @@ class SortableBehavior extends Behavior
     }
 
     /**
+     * Generates the method argument signature, the appropriate phpDoc for @params,
+     * the scope builder php code and the scope variable builder php code/
+     *
+     * @return array ($methodSignature, $paramsDoc, $scopeBuilder, $buildScopeVars)
+     */
+    public function generateScopePhp()
+    {
+
+        $methodSignature = '';
+        $paramsDoc       = '';
+        $buildScope      = '';
+        $buildScopeVars  = '';
+
+        if ($this->hasMultipleScopes()) {
+
+            $methodSignature = array();
+            $buildScope      = array();
+            $paramsDoc       = array();
+
+            foreach ($this->getScopes() as $idx => $scope) {
+
+                $column = $this->table->getColumn($scope);
+                $param  = '$scope'.$column->getPhpName();
+
+                $buildScope[]     = "    \$scope[] = $param;\n";
+                $buildScopeVars[] = "    $param = \$scope[$idx];\n";
+                $paramsDoc[]      = " * @param     ".$column->getPhpType()." $param Scope value for column `".$column->getPhpName()."`";
+
+                if (!$column->isNotNull()) {
+                    $param .= ' = null';
+                }
+                $methodSignature[] = $param;
+            }
+
+            $methodSignature = implode(', ', $methodSignature);
+            $paramsDoc       = implode("\n", $paramsDoc);
+            $buildScope      = "\n".implode('', $buildScope)."\n";
+            $buildScopeVars  = "\n".implode('', $buildScopeVars)."\n";
+
+        } else if ($this->useScope()){
+            $methodSignature = '$scope';
+            if ($column = $this->table->getColumn($this->getParameter('scope_column'))) {
+                if (!$column->isNotNull()) {
+                    $methodSignature .= ' = null';
+                }
+                $paramsDoc .= ' * @param '.$column->getPhpType().' $scope Scope to determine which objects node to return';
+            }
+        }
+
+        return array($methodSignature, $paramsDoc, $buildScope, $buildScopeVars);
+    }
+
+    /**
      * Returns the getter method name.
      *
      * @param  string $name
